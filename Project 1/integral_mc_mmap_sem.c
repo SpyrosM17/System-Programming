@@ -1,5 +1,4 @@
-// Panagiotis Hadijdoukas, 3456789
-// Giorgos Papadimitrou Ilias, 1234567
+// Spyros Mantadakis, 1100613
 
 #include <stdio.h>
 #include <stdlib.h>
