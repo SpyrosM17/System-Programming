@@ -1,5 +1,7 @@
-// Panagiotis Hadijdoukas, 3456789
-// Giorgos Papadimitrou Ilias, 1234567
+// Spyros Mantadakis, 1100613
+
+
+//Προβλημα Αποτυχία αξιοποιησης βιβλιοθηκων: <sys/ipc.h>, <sys/msg.h> δες chat: msgget function not supported
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,7 +9,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <sys/wait.h>
-#include <mqueue.h>
+#include <mqueue.h>  // Λύση Προβλήματος: Χρήση βιβλιοθήκης: <mqueue.h>
 #include <fcntl.h>
 
 double get_wtime(void) {
@@ -26,51 +28,65 @@ int main(int argc, char *argv[]) {
     unsigned long n = 24e7;
     const double h = (b-a)/n;
     const double ref = 0.73864299803689018;
-    int nprocs = 4;
-    
-    if (argc >= 2) {
-        n = atol(argv[1]);
-    }
-    if (argc >= 3) {
-        nprocs = atoi(argv[2]);
+    int nprocs = 4; // default 4 διεργασίες
+    double t0, t1;
+
+    // Αν έχω 2 ορίσματα τότε το δεύτερο όρισμα ειναι είναι ο αριθμός διεργασιών
+    if (argc == 2) {
+        nprocs = atol(argv[1]);
     }
 
-    double t0 = get_wtime();
+    // Αν έχω 3 ορίσματα τότε το δεύτερο όρισμα ειναι είναι ο αριθμός διεργασιών και το τρίτο ο αριθμός δειγμάτων n
+    if (argc == 3) {
+        nprocs = atoi(argv[1]);
+        n = atoi(argv[2]);
+    }
+
     
-    // Create message queue
-    struct mq_attr attr;
-    attr.mq_flags = 0;
-    attr.mq_maxmsg = 10;
-    attr.mq_msgsize = sizeof(double);
-    attr.mq_curmsgs = 0;
     
-    mqd_t mq = mq_open("/integral_mq", O_CREAT | O_RDWR, 0666, &attr);
+    // Δημιουργία ουράς μηνυμάτων
+    struct mq_attr message;
+    message.mq_flags = 0;
+    message.mq_maxmsg = 10;
+    message.mq_msgsize = sizeof(double);
+    message.mq_curmsgs = 0;
     
+    
+    mqd_t mq = mq_open("/integral_mq", O_CREAT | O_RDWR, 0666, &message);
+
+    t0 = get_wtime();
+    
+    // Υπολογισμός δειγμάτων ανά διεργασία
     unsigned long iter_per_proc = n / nprocs;
     
+
+    // δημιουργία διεργασιών (παιδιά)
     for (int i = 0; i < nprocs; i++) {
         pid_t pid = fork();
         
-        if (pid == 0) { // Child process
+        if (pid == 0) { // Αν είναι διεργασία παιδί 
+            // υπολόγισε μέρος των δειγμάτων
             unsigned long start_iter = i * iter_per_proc;
             unsigned long end_iter = (i == nprocs-1) ? n : start_iter + iter_per_proc;
             unsigned long local_iter = end_iter - start_iter;
             
+            // Διαφορετικός σπόρος
             srand48(getpid() + i);
             
             double local_res = 0.0;
             for (unsigned long j = 0; j < local_iter; j++) {
-                double xi = drand48();
+                double xi;
+                xi = drand48();
                 local_res += f(xi);
             }
             
-            // Send result via message queue
+            // Στείλε το μήνυμα στην ουρά
             mq_send(mq, (char*)&local_res, sizeof(local_res), 0);
             exit(0);
         }
     }
     
-    // Parent process - receive results from message queue
+    // Διάβασε αποτελέσματα απο την ουρά μηνυμάτων
     double total_res = 0.0;
     for (int i = 0; i < nprocs; i++) {
         double partial_res;
@@ -79,13 +95,14 @@ int main(int argc, char *argv[]) {
     }
     
     total_res *= h;
-    double t1 = get_wtime();
+    t1 = get_wtime();
     
-    // Wait for all children and cleanup
+    // Περίμενε τις διεργασίες παιδιά να τελειώσουν
     for (int i = 0; i < nprocs; i++) {
         wait(NULL);
     }
     
+    // Άδειασε την ουρά
     mq_close(mq);
     mq_unlink("/integral_mq");
     
