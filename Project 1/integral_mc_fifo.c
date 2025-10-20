@@ -47,10 +47,12 @@ int main(int argc, char *argv[]) {
     char *fifo_name = "/tmp/integral_fifo";
     mkfifo(fifo_name, 0666); 
     
-    t0 = get_wtime();
+    
     
     // Υπολογισμός δειγμάτων ανά διεργασία
     unsigned long iter_per_proc = n / nprocs;
+
+    t0 = get_wtime();
     
     // δημιουργία διεργασιών (παιδιά)
     for (int i = 0; i < nprocs; i++) {
@@ -95,12 +97,14 @@ int main(int argc, char *argv[]) {
     close(file);
     
     total_res *= h;
-    t1 = get_wtime();
-    
-    // Περίμενε τις διεργασίες παιδιά να τελειώσουν
+
+     // Περίμενε τις διεργασίες παιδιά να τελειώσουν
     for (int i = 0; i < nprocs; i++) {
         wait(NULL);
     }
+    t1 = get_wtime();
+    
+   
     
     // Άδειασε το αρχείο FIFO
     unlink(fifo_name);

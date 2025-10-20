@@ -54,11 +54,13 @@ int main(int argc, char *argv[]) {
     
     mqd_t mq = mq_open("/integral_mq", O_CREAT | O_RDWR, 0666, &message);
 
-    t0 = get_wtime();
+    
     
     // Υπολογισμός δειγμάτων ανά διεργασία
     unsigned long iter_per_proc = n / nprocs;
     
+
+    t0 = get_wtime();
 
     // δημιουργία διεργασιών (παιδιά)
     for (int i = 0; i < nprocs; i++) {
@@ -93,14 +95,18 @@ int main(int argc, char *argv[]) {
         mq_receive(mq, (char*)&partial_res, sizeof(partial_res), NULL);
         total_res += partial_res;
     }
+
     
+
     total_res *= h;
-    t1 = get_wtime();
-    
+
     // Περίμενε τις διεργασίες παιδιά να τελειώσουν
     for (int i = 0; i < nprocs; i++) {
         wait(NULL);
     }
+    t1 = get_wtime();
+    
+    
     
     // Άδειασε την ουρά
     mq_close(mq);
