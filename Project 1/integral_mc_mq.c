@@ -1,7 +1,6 @@
 // Spyros Mantadakis, 1100613
 
 
-//Προβλημα Αποτυχία αξιοποιησης βιβλιοθηκων: <sys/ipc.h>, <sys/msg.h> δες chat: msgget function not supported
 
 #include <stdio.h>
 #include <stdlib.h>

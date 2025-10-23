@@ -87,7 +87,10 @@ int main(int argc, char *argv[]) {
         }
     }
     
-    
+    // Περίμενε τις διεργασίες παιδιά να τελειώσουν
+    for (int i = 0; i < nprocs; i++) {
+        wait(NULL);
+    }
     
     // Άθροιση όλων των μερικών αποτελεσμάτων
     double total_res = 0.0;
@@ -95,12 +98,11 @@ int main(int argc, char *argv[]) {
         total_res += shared_results[i];
     }
 
+
+    
+    
     total_res *= h;
 
-    // Περίμενε τις διεργασίες παιδιά να τελειώσουν
-    for (int i = 0; i < nprocs; i++) {
-        wait(NULL);
-    }
     
     
     t1 = get_wtime();
