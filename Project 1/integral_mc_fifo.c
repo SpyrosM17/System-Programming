@@ -1,9 +1,6 @@
 // Spyros Mantadakis, 1100613
 
 
-
-//Προβλημα READ,WRITE δες το chat: FIFO πρόγραμμα σύγκρισης
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>

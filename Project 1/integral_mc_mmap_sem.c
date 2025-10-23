@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    if (sem_init(&shared_data->semaphore, 1, 1) == -1) {
+    if (sem_init(&shared_data->semaphore, 1, 1) == -1) { //Βελτίωση: απόρριψη σεμαφόρου με τιμή 0
         perror("sem_init failed");
         exit(1);
     }
