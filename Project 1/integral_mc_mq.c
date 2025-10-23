@@ -1,14 +1,15 @@
 // Spyros Mantadakis, 1100613
 
 
+//Προβλημα Αποτυχία αξιοποιησης βιβλιοθηκων: <sys/ipc.h>, <sys/msg.h> δες chat: msgget function not supported
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <sys/time.h>
 #include <unistd.h>
 #include <sys/wait.h>
-#include <sys/ipc.h>
-#include <sys/msg.h>
+#include <mqueue.h>  // Λύση Προβλήματος: Χρήση βιβλιοθήκης: <mqueue.h>
 #include <fcntl.h>
 
 double get_wtime(void) {
@@ -43,15 +44,15 @@ int main(int argc, char *argv[]) {
 
     
     
-    // Δομή για τα μηνύματα
-    struct msg_buffer {
-        long mtype;
-        double data;
-    };
-    
     // Δημιουργία ουράς μηνυμάτων
-    key_t key = ftok("integral_mq", 65);
-    int msgid = msgget(key, 0666 | IPC_CREAT);
+    struct mq_attr message;
+    message.mq_flags = 0;
+    message.mq_maxmsg = 10;
+    message.mq_msgsize = sizeof(double);
+    message.mq_curmsgs = 0;
+    
+    
+    mqd_t mq = mq_open("/integral_mq", O_CREAT | O_RDWR, 0666, &message);
 
     
     
@@ -82,20 +83,17 @@ int main(int argc, char *argv[]) {
             }
             
             // Στείλε το μήνυμα στην ουρά
-            struct msg_buffer message;
-            message.mtype = 1;
-            message.data = local_res;
-            msgsnd(msgid, &message, sizeof(message.data), 0);
+            mq_send(mq, (char*)&local_res, sizeof(local_res), 0);
             exit(0);
         }
     }
     
     // Διάβασε αποτελέσματα απο την ουρά μηνυμάτων
     double total_res = 0.0;
-    struct msg_buffer message;
     for (int i = 0; i < nprocs; i++) {
-        msgrcv(msgid, &message, sizeof(message.data), 0, 0);
-        total_res += message.data;
+        double partial_res;
+        mq_receive(mq, (char*)&partial_res, sizeof(partial_res), NULL);
+        total_res += partial_res;
     }
 
     
@@ -111,7 +109,8 @@ int main(int argc, char *argv[]) {
     
     
     // Άδειασε την ουρά
-    msgctl(msgid, IPC_RMID, NULL);
+    mq_close(mq);
+    mq_unlink("/integral_mq");
     
     printf("Result=%.16f Error=%e Rel.Error=%e Time=%lf seconds Processes=%d\n",
            total_res, fabs(total_res-ref), fabs(total_res-ref)/ref, t1-t0, nprocs);
