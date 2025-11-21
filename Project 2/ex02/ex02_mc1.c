@@ -1,52 +1,6 @@
 // Spyros Mantadakis, 1100613
 
 
-/* Σημειωσεις για αναφορα
-
-ex02_mc1.c (Εσωτερική Παραλληλοποίηση)
-
-1. Περιγραφή Αλγορίθμου & Στρατηγική Παραλληλοποίησης
-
-Η προσέγγιση που ακολουθει αφορά την εσωτερική παραλληλοποίηση (internal parallelization) της μεθόδου Monte Carlo,
-όπως ορίζεται στην εκφώνηση.
-Η εκτέλεση των 16 tasks παραμένει σειριακή (ένα task μετά το άλλο), αλλά ο υπολογισμός των δειγμάτων (samples) εντός του κάθε task διαμοιράζεται σε "nthreads" νήματα (POSIX threads)
-
-Η ροή εκτέλεσης για κάθε task είναι η εξής:
-Διαμερισμός Δειγμάτων: Ο συνολικός αριθμός δειγμάτων "n" διαιρείται με τον αριθμό των νημάτων "nthreads". Επειδή η διαίρεση μπορεί να αφήσει υπόλοιπο,
-ο αλγόριθμος αναθέτει (n / nthreads) δείγματα σε όλα τα νήματα και προσθέτει το υπόλοιπο (n % nthreads) στο τελευταίο νήμα, εξασφαλίζοντας ότι εκτελούνται ακριβώς n επαναλήψεις συνολικά
-
-Δημιουργία Νημάτων: Για κάθε task δημιουργούνται δυναμικά "nthreads" νήματα, στα οποία περνάμε μέσω μιας δομής thread_attr_t τα όρια ολοκλήρωσης [a, b], τον δείκτη της συνάρτησης, το αναγνωριστικο του τρεχον task
-και τον αριθμό επαναλήψεων που τους αναλογεί.
-Αθροιση Αποτελεσμάτων: Το κύριο νήμα (main thread) περιμένει τον τερματισμό όλων των νημάτων (pthread_join).
-Κάθε νήμα έχει αποθηκεύσει το μερικό του άθροισμα (partial_sum) στη δική του δομή δεδομένων. Το κύριο νήμα αθροίζει αυτά τα μερικά αποτελέσματα για να υπολογιζει την τελική τιμή του ολοκληρώματος.
-
-2. Γεννήτρια Τυχαίων Αριθμών & Ασφάλεια Νημάτων (Thread Safety)
-
-Για την παραγωγή τυχαίων αριθμών δεν χρησιμοποιήθηκε η drand48(), καθώς αυτές χρησιμοποιούν καθολική κατάσταση (global state) και δεν είναι ασφαλείς για πολυνηματική εκτέλεση (not thread-safe) χωρίς κλείδωμα, το οποίο θα μείωνε την απόδοση.
-Χρησιμοποιηθηκε η γεννητρια συνάρτηση τυχαιων αριθμων reentrant drand48_r (GNU extension):
-Κάθε νήμα διατηρεί τη δική του ανεξάρτητη κατάσταση γεννήτριας (struct drand48_data buffer) που δηλώνεται τοπικά στη στοίβα (stack) της συνάρτησης του νήματος (integrate_threaded_mc). Αυτό διασφαλίζει ότι τα νήματα δεν μοιράζονται μνήμη.
-Η αρχικοποίηση (seed) γίνεται μοναδικά για κάθε νήμα βάσει του τύπου: "seed = task_id * 1000 + thread_id".
-
-
-3.Διαχείριση Μνήμης
-
-Δεν χρησιμοποιειται μηχανισμος αμοιβαίου αποκλεισμού (mutex) κατά τη διάρκεια των υπολογισμών:
-Κάθε νήμα γράφει το αποτέλεσμά του (partial_sum) σε διαφορετική θέση μνήμης (μέσα στον πίνακα δομών Thread_attr[i]).
-Εφόσον τα νήματα γράφουν σε διαφορετικα τμήματα μνήμης, δεν υπάρχει αμοιβαιος αποκλεισμος.
-
-
-4. Τεχνικές Λεπτομέρειες & Διορθώσεις Κώδικα
-Κατά την υλοποίηση αντιμετωπίστηκαν και επιλύθηκαν τα εξής:
-Implicit Declaration: Προστέθηκε το #define _GNU_SOURCE στην αρχή του αρχείου κωδικα ώστε να αναγνωριστούν σωστά οι συναρτήσεις drand48_r και srand48_r από την stdlib.h.
-
-Variable Shadowing: Μετονομάστηκε η μεταβλητή χρόνου στη main σε T0 (αντί για t0), ώστε να μην υπάρχει σύγκρουση ονομάτων (shadowing) με την εσωτερική μεταβλητή χρόνου του βρόχου (t0),
-διασφαλίζοντας ορθή μέτρηση του συνολικού χρόνου.
-
-Input Parsing: Ο κώδικας διαβάζει το flag -T από τη γραμμή εντολών για να καθορίσει δυναμικά τον αριθμό των νημάτων.
-
-
-*/
-
 #define _GNU_SOURCE  //Για χρηση reentrant drand48_r, srand48_r
 #define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
@@ -159,11 +113,11 @@ typedef struct {
 
 int main(int argc, char *argv[]) {
   unsigned long long n = 480000000ULL; // default 48e7
-  int nthreads = 1; //default αριθμός νημάτων: 1
+  int T = 1; //default αριθμός νημάτων: 1
 
   // Ελεγχος flag: Αν (-Τ) τοτε το τριτο ορισμα ειναι ο αριθμος των νηματων
     if (argc == 3 && (strcmp(argv[1], "-T") == 0)) {
-        nthreads = atoi(argv[2]);
+        T = atoi(argv[2]);
     }
 
   
@@ -199,25 +153,25 @@ int main(int argc, char *argv[]) {
   
 
   
-  printf("Multi-threaded Sequential Monte Carlo (n=%llu samples per task, T=%d threads per task)\n", n, nthreads);
+  printf("Multi-threaded Sequential Monte Carlo (n=%llu samples per task, T=%d threads per task)\n", n, T);
 
   double T0 = get_wtime(); // Λύση Προβλήματος : variable Shadowing, μετονομασια σε Τ0 για να μη χρησιμοποιειται μεσα στο loop αντι για το εσωτερικο t0.
   const double tiny = 1e-14;
 
   //Δημιουργια πινακα νηματων και πινακα των ορισματων τους
-  pthread_t Thread[nthreads]; 
-  thread_attr_t Thread_attr[nthreads]; 
+  pthread_t Thread[T]; 
+  thread_attr_t Thread_attr[T]; 
 
 
   for (int k = 0; k < ntasks; ++k) {
     const task_t *t = &tasks[k];
     double t0 = get_wtime();
 
-    unsigned long long samples_per_thread = n / nthreads; //ομοιμορφη κατανομη των δειγματων σε καθε νημα
-    unsigned long long remainder = n % nthreads; // υπολοιπα δειγματα
+    unsigned long long samples_per_thread = n / T; //ομοιμορφη κατανομη των δειγματων σε καθε νημα
+    unsigned long long remainder = n % T; // υπολοιπα δειγματα
     
     //Αντιγραφη στοιχειων του τρεχον task στον πινακα των attributes του νηματος
-    for(int i=0; i<nthreads; i++){
+    for(int i=0; i<T; i++){
       Thread_attr[i].thread_id = i;
       Thread_attr[i].task_id = k;
       Thread_attr[i].thread_samples = samples_per_thread;
@@ -227,7 +181,7 @@ int main(int argc, char *argv[]) {
       Thread_attr[i].partial_sum = 0.0;
 
       //  προσθεσε το υπολοιπο στο μερος δειγματων του τελευταιο νηματος
-      if (i == nthreads - 1) {
+      if (i == T - 1) {
             Thread_attr[i].thread_samples += remainder;
           }
 
@@ -236,7 +190,7 @@ int main(int argc, char *argv[]) {
     }
     
     double total_sum = 0.0;
-    for (int i = 0; i < nthreads; i++) {
+    for (int i = 0; i < T; i++) {
         pthread_join(Thread[i], NULL); //Αναμονη νηματων
         total_sum += Thread_attr[i].partial_sum; //Υπολογισμος συνολικου αθροισματος απο τα μερικα αθροισματα των νηματων.
     }
@@ -245,14 +199,12 @@ int main(int argc, char *argv[]) {
     double width = t->b - t->a;
     double res = (width / (double)n) * total_sum;
 
-
+    double t1 = get_wtime();
 
 
     
     double ref; int has_ref = compute_ref(t->fid, t->a, t->b, &ref);
 
-    
-    double t1 = get_wtime();
 
     if (has_ref) {
       double abs_err = fabs(res - ref);

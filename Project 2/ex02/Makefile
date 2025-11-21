@@ -15,4 +15,4 @@ ex02_mc2: ex02_mc2.c
 
 
 clean:
-	rm -f ex02_seq
+	rm -f ex02_seq ex02_mc1 ex02_mc2
