@@ -2,12 +2,17 @@
 // Sequential Monte Carlo integrations: 16 tasks from 4 "heavier" functions.
 // Per-task seed = task index (0,1,2,...). Analytic references used for Error/Rel.Error.
 
+#define _GNU_SOURCE // Λύση Προβλήματος : implicit declaration, το stdlib δεν περιεχει τα extensions για την δηλωση τωνω  drand48, srand48
 #define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <sys/time.h>
 #include <stdint.h>
+
+
+
+
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -107,7 +112,7 @@ int main(int argc, char *argv[]) {
 
   printf("Sequential Monte Carlo (n=%llu samples per task)\n", n);
 
-  double t0 = get_wtime();
+  double Τ0 = get_wtime(); // Λύση Προβλήματος : variable Shadowing, μετονομασια σε Τ0 για να μη χρησιμοποιειται μεσα στο loop αντι για το εσωτερικο t0.
   const double tiny = 1e-14;
   for (int k = 0; k < ntasks; ++k) {
     const task_t *t = &tasks[k];
@@ -136,8 +141,8 @@ int main(int argc, char *argv[]) {
              t->name, t->a, t->b, (unsigned long long)n, k, res, t1 - t0);
     }
   }
-  double t1 = get_wtime();
-  printf("total time: %.6f s\n", t1-t0); 
+  double Τ1 = get_wtime(); 
+  printf("total time: %.6f s\n", Τ1-Τ0); 
 
   return 0;
 }

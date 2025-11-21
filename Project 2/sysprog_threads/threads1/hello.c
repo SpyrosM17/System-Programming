@@ -1,11 +1,11 @@
 // Hello world from a POSIX thread
 #include <stdio.h>
-#include <pthread.h>
+#include <pthread.h>	
 
 
 void *work(void *arg)
 {
-	pthread_t me = pthread_self();
+	pthread_t me = pthread_self(); // ID νηματος
 	printf("Hello world from thread %lx!\n", (long)me);
 
 	return NULL;
