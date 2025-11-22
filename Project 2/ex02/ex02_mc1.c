@@ -112,7 +112,7 @@ typedef struct {
 
 
 int main(int argc, char *argv[]) {
-  unsigned long long n = 480000000ULL; // default 48e7
+  unsigned long long n = 200000000ULL; // Προσαρμογή σε 2e8 για χρόνο ~50s
   int T = 1; //default αριθμός νημάτων: 1
 
   // Ελεγχος flag: Αν (-Τ) τοτε το τριτο ορισμα ειναι ο αριθμος των νηματων
