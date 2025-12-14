@@ -1,4 +1,4 @@
-// Spyros Mantadakis, 1100613
+/* Spyros Mantadakis, 1100613 */
 
 #define _GNU_SOURCE //για erand
 #define _POSIX_C_SOURCE 200809L
@@ -32,6 +32,8 @@ static double get_wtime(void) {
 /* ----------- Utility RNG functions ----------- */
 
 // Αντικατάσταση global state drand48 με local state erand48
+// rand_uniform δέχεται πλέον δείκτη στο state (xsubi)
+
 static double rand_uniform(unsigned short *xsubi) {
     return erand48(xsubi);
 }
@@ -69,16 +71,17 @@ void generate_data(double *X, int *y, int n_samples, int n_features) {
         exit(EXIT_FAILURE);
     }
     
+    //Δημιουργία main seed για τα βάρη
     unsigned short main_seed[3] = {0, 0, 1234};
     for (int j = 0; j < n_features; ++j) {
-        //τροποποίηση
+        //Χρήση της reentrant
         w_true[j] = randn_r(main_seed); // random true weight
     }
     double bias_true = 0.0;
 
-    #pragma omp parallel // Παραλληλη περιοχη
+    #pragma omp parallel // Παραλληλη περιοχη για δημιουργία δεδομένων
     {
-        //RNG για κάθε thread
+        //RNG για κάθε νημα
         int tid = omp_get_thread_num();
         unsigned short xsubi[3] = {(unsigned short)tid, (unsigned short)tid, 42};
         
@@ -87,13 +90,13 @@ void generate_data(double *X, int *y, int n_samples, int n_features) {
             for (int i = 0; i < n_samples; ++i) {
                 double z = bias_true;
                 for (int j = 0; j < n_features; ++j) {
-                //τροποποίηση
+                //Κλήση με local state
                 double xij = randn_r(xsubi); // feature ~ N(0,1)
                     X[i * n_features + j] = xij;
                     z += w_true[j] * xij;
                 }
                 // Add some noise and threshold
-                z += 0.5 * randn_r(xsubi); //τροποποίηση
+                z += 0.5 * randn_r(xsubi);
                 y[i] = (z > 0.0) ? 1 : 0;
             }
     }
@@ -137,7 +140,7 @@ void apply_standardization(
     const double *mean,
     const double *std
 ) {
-    // Παραλληλοποιηση επεξεργασιας πινακα Χ με στατικη κατανομη
+    // Παραλληλοποίηση κανονικοποίησης στα δείγματα
     #pragma omp parallel for schedule(static)
     for (int i = 0; i < n_samples; ++i) {
         for (int j = 0; j < n_features; ++j) {
@@ -309,9 +312,9 @@ int main(int argc, char *argv[]) {
     double t0_search = get_wtime(); //Προσθήκη για μετρηση χρονου αναζητησης
 
     
-    #pragma omp parallel //Παραλληλη περιοχή
+    #pragma omp parallel //Παραλληλοποίηση της αναζήτησης
     {
-        // Thread-local RNG state
+        // Thread-local RNG αρχικοποιηση
         int tid = omp_get_thread_num();
         unsigned short xsubi[3];
         xsubi[0] = (unsigned short)tid;
@@ -322,7 +325,7 @@ int main(int argc, char *argv[]) {
         for (int i = 0; i < N_TRIALS; ++i) {
             double t0 = get_wtime();
             // Exponent in [-1, +1]
-            double exponent = -1.0 + 2.0 * rand_uniform(xsubi); //Τροποποιηση
+            double exponent = -1.0 + 2.0 * rand_uniform(xsubi); //Χρήση local RNG state
             double C = pow(10.0, exponent);
 
             // Train and Eval (Thread-local)
@@ -335,7 +338,7 @@ int main(int argc, char *argv[]) {
 
             double t1 = get_wtime();
 
-            // Critical section για I/O και ενημερωση best
+            // Critical section για ασφαλή ενημέρωση του global best_acc και εκτύπωση
             #pragma omp critical
             {
                 printf("%02d: C=%.3e, acc=%.4f t=%.3f s\n", i, C, acc, t1-t0);
