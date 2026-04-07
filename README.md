@@ -1,37 +1,34 @@
 # Systems Programming - Parallel Implementations 🚀
 
-## 📋 Περιεχόμενα
+## 📋 Table of Contents
 
-### 1. Πολυδιεργασιακή Υλοποίηση (Multi-processing & IPC)
-Υπολογισμός του ολοκληρώματος της $f(x) = \sin(\cos(x))$ με τη μέθοδο **Monte Carlo**.
-* **IPC Mechanisms:** FIFO (Named Pipes), Message Queues (POSIX/System V), Shared Memory (`mmap`) με και χωρίς σεμαφόρους.
-* **Analysis:** Σύγκριση απόδοσης των μηχανισμών IPC και επίδραση του αριθμού των διεργασιών στον χρόνο εκτέλεσης.
+### 1. Multi-processing & IPC Implementation
+Calculation of the integral of $f(x) = \sin(\cos(x))$ using the **Monte Carlo** method.
+* **IPC Mechanisms:** FIFO (Named Pipes), Message Queues (POSIX/System V), Shared Memory (`mmap`) with and without Semaphores.
+* **Analysis:** Performance comparison of IPC mechanisms and the impact of process count on execution time.
 
-### 2. Πολυνηματική Υλοποίηση (Pthreads)
-Παραλληλοποίηση 16 διαφορετικών tasks ολοκλήρωσης με χρήση της βιβλιοθήκης **POSIX threads**.
-* **Architectures:** * Εσωτερικός παραλληλισμός (Internal parallelization).
-    * Δύο επίπεδα παραλληλισμού (Static Round-Robin).
-    * Δυναμική ανάθεση εργασιών με **Task Queue** και Mutexes.
-* **Features:** Thread-safe RNG (`drand48_r`), αποφυγή race conditions και ανάλυση Load Balancing.
+### 2. Multi-threaded Implementation (Pthreads)
+Parallelization of 16 different integration tasks using the **POSIX threads** (Pthreads) library.
+* **Architectures:** * **Internal Parallelization:** Parallelizing within a single task.
+    * **Static Round-Robin:** Two-level parallelization assigning tasks to threads.
+    * **Dynamic Task Queue:** Dynamic task assignment using a shared queue and Mutexes.
+* **Features:** Implementation of thread-safe Random Number Generation (`drand48_r`), race condition prevention, and Load Balancing analysis.
 
-### 3. Παραλληλισμός με OpenMP
-Χρήση του προτύπου **OpenMP** για υψηλού επιπέδου παραλληλισμό.
-* **Monte Carlo:** Υλοποίηση με εμφωλευμένο παραλληλισμό (`nested parallelism`) και ρήτρες `reduction`.
-* **Machine Learning (Logistic Regression):** Παραλληλοποίηση τυχαίας αναζήτησης υπερπαραμέτρων (Random Search).
-* **Features:** Δυναμική χρονοδρομολόγηση (`dynamic schedule`) και χρήση `erand48` για thread-safety.
+### 3. High-Level Parallelism with OpenMP
+Leveraging the **OpenMP** API for shared-memory parallel programming.
+* **Monte Carlo:** Implementation using nested parallelism and `reduction` clauses.
+* **Machine Learning (Logistic Regression):** Parallelization of Hyperparameter Random Search.
+* **Features:** Dynamic scheduling strategies and the use of `erand48` for thread-safe operations.
 
-## 📊 Αποτελέσματα & Απόδοση
-Όλες οι υλοποιήσεις δοκιμάστηκαν σε σύστημα με **6 φυσικούς πυρήνες**. Τα κύρια συμπεράσματα περιλαμβάνουν:
-* **Scalability:** Η μέγιστη επιτάχυνση (Speedup) επιτυγχάνεται όταν τα νήματα/διεργασίες ισούνται με τους φυσικούς πυρήνες ($T=6$).
-* **Oversubscription:** Η χρήση περισσότερων νημάτων από τους διαθέσιμους πυρήνες προκαλεί καθυστέρηση λόγω Context Switching.
-* **Efficiency:** Η χρήση Shared Memory (`mmap`) στην 1η εργασία και το υβριδικό μοντέλο στην 2η εργασία ($P=2, T=3$) έδωσαν τους βέλτιστους χρόνους.
+## 📊 Results & Performance Analysis
+All implementations were benchmarked on a system with **6 physical cores**. Key findings include:
+* **Scalability:** Maximum **Speedup** is achieved when the number of threads/processes equals the number of physical cores ($T=6$).
+* **Oversubscription:** Utilizing more threads than available cores results in performance degradation due to increased **Context Switching** overhead.
+* **Efficiency:** The Shared Memory (`mmap`) approach in Project 1 and the hybrid model in Project 2 ($P=2, T=3$) yielded the most optimized execution times.
 
-## 🛠️ Τεχνολογίες
-* **Language:** C (C11)
-* **Parallelism:** POSIX Threads, OpenMP, `fork()`
+## 🛠️ Technologies
+* **Language:** C
+* **Parallelism:** POSIX Threads (Pthreads), OpenMP, `fork()`
 * **OS:** Linux / WSL (Ubuntu)
 * **Tools:** GCC Compiler, Makefiles
 
-## 👤 Συγγραφέας
-* **Σπυρίδων Μανταδάκης** (1100613)
-* Φοιτητής 3ου έτους, Τμήμα Μηχανικών Ηλεκτρονικών Υπολογιστών και Πληροφορικής (CEID).
